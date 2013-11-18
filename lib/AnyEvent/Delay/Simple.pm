@@ -66,8 +66,7 @@ __END__
 
 =head1 NAME
 
-AnyEvent::Delay::Simple - Manage callbacks and control the flow of events by
-AnyEvent
+AnyEvent::Delay::Simple - Manage callbacks and control the flow of events by AnyEvent
 
 =head1 SYNOPSIS
 
@@ -103,7 +102,7 @@ Runs the chain of callbacks, the first callback will run right away, and the
 next one once the previous callback finishes. This chain will continue until
 there are no more callbacks, or an error occurs in a callback. If an error
 occurs in one of the steps, the chain will be break, and error handler will
-call if it's defined. Unless error handler defined, error is fatal. If last
+call, if it's defined. Unless error handler defined, error is fatal. If last
 callback finishes and no error occurs, finish handler will call.
 
 =head1 SEE ALSO
