@@ -1,5 +1,4 @@
 Changes
-cpanfile
 lib/AnyEvent/Delay/Simple.pm
 Makefile.PL
 MANIFEST
