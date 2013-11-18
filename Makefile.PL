@@ -12,8 +12,9 @@ WriteMakefile(
 	VERSION_FROM     => 'lib/AnyEvent/Delay/Simple.pm',
 	ABSTRACT_FROM    => 'lib/AnyEvent/Delay/Simple.pm',
 	LICENSE          => 'perl',
-	MIN_PERL_VERSION => '5.10',
+	MIN_PERL_VERSION => '5.8.1',
 	BUILD_REQUIRES   => {
+		'Test::Deep'        => 0,
 		'Test::More'        => 0,
 	},
 	PREREQ_PM        => {
