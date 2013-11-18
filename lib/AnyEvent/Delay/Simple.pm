@@ -8,11 +8,23 @@ use AnyEvent;
 use parent 'Exporter';
 
 
+our $VERSION = '0.01';
+
+
 our @EXPORT = qw(delay);
 
 
-our $VERSION = '0.01';
+sub import {
+	my ($class, @args) = @_;
 
+	if (grep { $_ eq 'ae' } @args) {
+		no strict 'refs';
+		*AE::delay = \&delay;
+	}
+	else {
+		$class->export_to_level(1, @args);
+	}
+}
 
 sub delay {
 	my $cb = pop();
