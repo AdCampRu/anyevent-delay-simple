@@ -6,7 +6,7 @@ MANIFEST.SKIP
 README
 t/00-use.t
 t/01-call.t
-t/01-call-ae.t
+t/02-call-ae.t
 t/90-pod.t
 t/91-pod-coverage.t
 t/92-manifest.t
