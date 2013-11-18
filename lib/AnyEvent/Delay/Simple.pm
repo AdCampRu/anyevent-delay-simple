@@ -85,15 +85,14 @@ AnyEvent::Delay::Simple - Manage callbacks and control the flow of events by Any
     use AnyEvent::Delay::Simple;
 
     my $cv = AE::cv;
-
     delay([
         sub { say('1st step'); },
         sub { say('2nd step'); die(); },
-        # never calls because 2nd step failed
+        # Never calls because 2nd step failed
         sub { say('3rd step'); }],
-        # calls on error
+        # Calls on error
         sub { say('Fail: ' . $@); $cv->send(); },
-        # calls on success
+        # Calls on success
         sub { say('Ok'); $cv->send(); }
     );
     $cv->recv();
@@ -116,6 +115,12 @@ there are no more callbacks, or an error occurs in a callback. If an error
 occurs in one of the steps, the chain will be break, and error handler will
 call, if it's defined. Unless error handler defined, error is fatal. If last
 callback finishes and no error occurs, finish handler will call.
+
+You may import this function into L<AE> namespace instead of current one. Just
+use module with symbol C<ae>.
+
+    use AnyEvent::Delay::Simple qw(ae);
+    AE::delay(...);
 
 =head1 SEE ALSO
 
