@@ -31,11 +31,7 @@ sub delay {
 	my $cv = AE::cv;
 
 	$cv->begin();
-	$cv->cb(sub {
-		my ($args) = $cv->recv();
-
-		$cb->($args ? @$args : ());
-	});
+	$cv->cb(sub { $cb->($cv->recv()); });
 	_delay_step(@_, $cv);
 	$cv->end();
 
@@ -48,8 +44,11 @@ sub _delay_step {
 
 	my $sub = shift(@$subs);
 
+	unless (defined($args)) {
+		$args = [];
+	}
 	unless ($sub) {
-		$cv->send($args);
+		$cv->send(@$args);
 
 		return;
 	}
@@ -60,18 +59,19 @@ sub _delay_step {
 
 		if ($err) {
 			eval {
-				@res = $sub->($args ? @$args : ());
+				@res = $sub->(@$args);
 			};
 			if ($@) {
 				AE::log error => $@;
-				$cv->cb($err);
+				$cv->cb(sub { $err->($cv->recv()); });
+				$cv->send(@$args);
 			}
 			else {
 				_delay_step($subs, $err, \@res, $cv);
 			}
 		}
 		else {
-			@res = $sub->($args ? @$args : ());
+			@res = $sub->(@$args);
 			_delay_step($subs, $err, \@res, $cv);
 		}
 		$cv->end();
