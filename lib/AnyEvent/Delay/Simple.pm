@@ -126,6 +126,10 @@ occurs in one of the steps, the chain will be break, and error handler will
 call, if it's defined. Unless error handler defined, error is fatal. If last
 callback finishes and no error occurs, finish handler will call.
 
+Return values of each callbacks in chain passed as arguments to the next one,
+and result of last callback passed to the finish handler. If an error occurs
+then arguments of the failed callback passed to the error handler.
+
 You may import this function into L<AE> namespace instead of current one. Just
 use module with symbol C<ae>.
 
