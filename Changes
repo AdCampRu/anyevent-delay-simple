@@ -1,6 +1,9 @@
 Revision history for perl module AnyEvent::AnyEvent::Delay::Simple
 
-0.02    2013-11-19
+0.03    2013-11-19
+        - Implemented data transfer along the chain of callbacks.
+
+0.02    2013-11-18
         - Implemented import of function into AE namespace.
 
 0.01    2013-11-18
