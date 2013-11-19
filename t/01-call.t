@@ -18,7 +18,7 @@ my @res;
 $cv->begin();
 delay(
 	[map { my $v = $_; sub { push(@res, $v); die() if $v == 5; } } 0 .. 9],
-	sub { push(@res, -1); $cv->end() },
+	sub { push(@res, -1); $cv->end(); },
 	sub { $cv->end(); }
 );
 $cv->begin();
@@ -29,6 +29,17 @@ delay(
 $cv->wait();
 
 cmp_bag \@res, [-1, 0 .. 5, 10 .. 19];
+
+$cv = AE::cv;
+$cv->begin();
+delay([
+	sub { 1; },
+	sub { is scalar(@_), 1; is $_[0], 1; return (1, 2, 3); },
+	sub { is scalar(@_), 3; cmp_deeply \@_, [1, 2, 3]; 2; }],
+	sub { $cv->end(); },
+	sub { is scalar(@_), 1; is $_[0], 2; $cv->end(); }
+);
+$cv->wait();
 
 eval { AE::delay(); };
 like $@, qr/^Undefined subroutine/;

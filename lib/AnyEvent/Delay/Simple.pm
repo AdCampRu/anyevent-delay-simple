@@ -17,7 +17,7 @@ our @EXPORT = qw(delay);
 sub import {
 	my ($class, @args) = @_;
 
-	if (grep { $_ eq 'ae' } @args) {
+	if (grep { $_ && $_ eq 'ae' } @args) {
 		no strict 'refs';
 		*AE::delay = \&delay;
 	}
@@ -30,9 +30,13 @@ sub delay {
 	my $cb = pop();
 	my $cv = AE::cv;
 
-	$cv->begin;
+	$cv->begin();
+	$cv->cb(sub {
+		my ($args) = $cv->recv();
+
+		$cb->($args ? @$args : ());
+	});
 	_delay_step(@_, $cv);
-	$cv->cb($cb);
 	$cv->end();
 
 	return;
@@ -40,29 +44,35 @@ sub delay {
 
 sub _delay_step {
 	my ($cv) = pop();
-	my ($subs, $err) = @_;
+	my ($subs, $err, $args) = @_;
 
 	my $sub = shift(@$subs);
 
-	return unless $sub;
+	unless ($sub) {
+		$cv->send($args);
+
+		return;
+	}
 
 	$cv->begin();
 	AE::postpone {
+		my @res;
+
 		if ($err) {
 			eval {
-				$sub->();
+				@res = $sub->($args ? @$args : ());
 			};
 			if ($@) {
 				AE::log error => $@;
 				$cv->cb($err);
 			}
 			else {
-				_delay_step($subs, $err, $cv);
+				_delay_step($subs, $err, \@res, $cv);
 			}
 		}
 		else {
-			$sub->();
-			_delay_step($subs, $err, $cv);
+			@res = $sub->($args ? @$args : ());
+			_delay_step($subs, $err, \@res, $cv);
 		}
 		$cv->end();
 	};
