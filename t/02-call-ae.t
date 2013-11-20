@@ -7,7 +7,7 @@ use Test::More;
 use Test::Deep;
 
 use AnyEvent;
-use AnyEvent::Delay::Simple qw(-AE delay easy_delay);
+use AnyEvent::Delay::Simple qw(AE::delay AE::easy_delay);
 
 
 local $ENV{PERL_ANYEVENT_LOG} = 'log=nolog';

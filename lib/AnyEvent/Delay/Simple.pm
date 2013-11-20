@@ -18,14 +18,21 @@ our @EXPORT_OK = qw(easy_delay);
 sub import {
 	my ($class, @args) = @_;
 
-	my $ae;
+	my (@ae, @up);
 
-	@args = grep { !($_ && $_ eq '-AE' && ($ae = 1)) } @args;
-	if ($ae) {
-		$class->export('AE', @args);
+	foreach (@args) {
+		if ($_ && /^AE::(.+)?/) {
+			push(@ae, $1);
+		}
+		else {
+			push(@up, $_);
+		}
 	}
-	else {
-		$class->export_to_level(1, undef, @args);
+	if (@ae) {
+		$class->export('AE', @ae);
+	}
+	if (@up) {
+		$class->export_to_level(1, undef, @up);
 	}
 }
 
@@ -249,9 +256,9 @@ handler will call, if it's defined. Unless error handler defined, error is
 fatal. If last callback finishes and no error occurs, finish handler will call.
 
 You may import these functions into L<AE> namespace instead of current one.
-Just use module with symbol C<-AE>.
+Just prefix function name with C<AE::> when using module.
 
-    use AnyEvent::Delay::Simple qw(AE);
+    use AnyEvent::Delay::Simple qw(AE::delay);
     AE::delay(...);
 
 =head2 delay
