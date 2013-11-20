@@ -1,5 +1,10 @@
 Revision history for perl module AnyEvent::AnyEvent::Delay::Simple
 
+0.04
+        - INCOMPATIBLE CHANGE: Implemented control the flow of events within
+            step. Changed arguments passed to callbacks and handlers.
+        - INCOMPATIBLE CHANGE: Changed import rule.
+
 0.03    2013-11-19
         - Implemented data transfer along the chain of callbacks.
 
