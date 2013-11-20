@@ -8,7 +8,7 @@ use AnyEvent;
 use parent 'Exporter';
 
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 
 our @EXPORT = qw(delay);
@@ -26,20 +26,34 @@ sub import {
 	}
 }
 
+use DDP;
 sub delay {
-	my $cb = pop();
+	my $fin = pop();
+	my ($subs, $err);
+
+	if (ref($_[0]) eq 'ARRAY') {
+		$subs = shift();
+		$err  = pop();
+	}
+	else {
+		$err  = pop();
+		$subs = \@_;
+	}
+
 	my $cv = AE::cv;
 
 	$cv->begin();
-	$cv->cb(sub { $cb->($cv->recv()); });
-	_delay_step(@_, $cv);
+	$cv->cb(sub {
+		_delay_step([$fin], undef, [$cv->recv()], $cv);
+	});
+	_delay_step($subs, $err, $cv);
 	$cv->end();
 
 	return;
 }
 
 sub _delay_step {
-	my ($cv) = pop();
+	my $cv = pop();
 	my ($subs, $err, $args) = @_;
 
 	my $sub = shift(@$subs);
@@ -56,26 +70,46 @@ sub _delay_step {
 	$cv->begin();
 	AE::postpone {
 		my @res;
+		my $xcv = AE::cv;
 
+		$xcv->begin();
 		if ($err) {
 			eval {
-				@res = $sub->(@$args);
+				$sub->($xcv, @$args);
 			};
 			if ($@) {
 				AE::log error => $@;
-				$cv->cb(sub { $err->($cv->recv()); });
+				$cv->cb(sub {
+					_delay_step([$err], undef, [$cv->recv()], $cv);
+				});
 				$cv->send(@$args);
+				$cv->end();
+				undef($xcv);
 			}
 			else {
-				_delay_step($subs, $err, \@res, $cv);
+				_delay_step_ex($subs, $err, $xcv, $cv);
 			}
 		}
 		else {
-			@res = $sub->(@$args);
-			_delay_step($subs, $err, \@res, $cv);
+			$sub->($xcv, @$args);
+			_delay_step_ex($subs, $err, $xcv, $cv);
 		}
-		$cv->end();
 	};
+
+	return;
+}
+
+sub _delay_step_ex {
+	my ($subs, $err, $xcv, $cv) = @_;
+
+	my $cb = $xcv->cb();
+
+	$xcv->cb(sub {
+		$cb->() if $cb;
+		_delay_step($subs, $err, [$xcv->recv()], $cv);
+		$cv->end();
+	});
+	$xcv->end();
 
 	return;
 }
@@ -95,15 +129,28 @@ AnyEvent::Delay::Simple - Manage callbacks and control the flow of events by Any
     use AnyEvent::Delay::Simple;
 
     my $cv = AE::cv;
-    delay([
-        sub { say('1st step'); },
-        sub { say('2nd step'); die(); },
-        # Never calls because 2nd step failed
-        sub { say('3rd step'); }],
-        # Calls on error
-        sub { say('Fail: ' . $@); $cv->send(); },
-        # Calls on success
-        sub { say('Ok'); $cv->send(); }
+    delay(
+        sub {
+            say('1st step');
+            shift->send('1st result'); # send data to 2nd step
+        },
+        sub {
+            shift;
+            say(@_);                   # receive data from 1st step
+            say('2nd step');
+            die();
+        },
+        sub {                          # never calls because 2nd step failed
+            say('3rd step');
+        },
+        sub {                          # calls on error, at this time
+            say('Fail: ' . $@);
+            $cv->send();
+        },
+        sub {                          # calls on success, not at this time
+            say('Ok');
+            $cv->send();
+        }
     );
     $cv->recv();
 
@@ -116,8 +163,9 @@ AnyEvent. This module inspired by L<Mojo::IOLoop::Delay>.
 
 =head2 delay
 
-    delay(\@steps, $finish);
-    delay(\@steps, $error, $finish);
+    delay([\&step_1, ..., \&step_n], \&finish);
+    delay([\&step_1, ..., \&step_n], \&error, \&finish);
+    delay(\&step_1, ..., \&step_n, \&error, \&finish);
 
 Runs the chain of callbacks, the first callback will run right away, and the
 next one once the previous callback finishes. This chain will continue until
@@ -126,9 +174,30 @@ occurs in one of the steps, the chain will be break, and error handler will
 call, if it's defined. Unless error handler defined, error is fatal. If last
 callback finishes and no error occurs, finish handler will call.
 
-Return values of each callbacks in chain passed as arguments to the next one,
-and result of last callback passed to the finish handler. If an error occurs
-then arguments of the failed callback passed to the error handler.
+Condvar and data from previous step passed as arguments to each callback or
+handler. If an error occurs then input data of the failed callback passed to
+the error handler. The data sends to the next step by using condvar's C<send()>
+mrthod.
+
+    sub {
+        my $cv = shift();
+        $cv->send('foo', 'bar');
+    },
+    sub {
+        my ($cv, @args) = @_;
+        # now @args is ('foo', 'bar')
+    },
+
+Condvar can be used to control the flow of events within step.
+
+    sub {
+        my $cv = shift();
+        $cv->begin();
+        $cv->begin();
+        my $w1; $w1 = AE::timer 1.0, 0, sub { $cv->end(); undef($w1); };
+        my $w2; $w2 = AE::timer 2.0, 0, sub { $cv->end(); undef($w2); };
+        $cv->cb(sub { $cv->send('step finished'); });
+    }
 
 You may import this function into L<AE> namespace instead of current one. Just
 use module with symbol C<ae>.
