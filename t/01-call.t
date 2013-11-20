@@ -44,8 +44,8 @@ $cv = AE::cv;
 delay([
 	sub { shift->send(1); },
 	sub { is scalar(@_), 2; is $_[1], 1; shift->send(1, 2, 3); },
-	sub { die(); }],
-	sub { is scalar(@_), 4; cmp_deeply [@_[1 .. 3]], [1, 2, 3]; $cv->send(1); },
+	sub { die('foo'); }],
+	sub { is scalar(@_), 2; like $_[1], qr/^foo/; $cv->send(1); },
 	sub { $cv->send(2); }
 );
 is $cv->recv(), 1;

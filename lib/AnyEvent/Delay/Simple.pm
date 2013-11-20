@@ -26,7 +26,6 @@ sub import {
 	}
 }
 
-use DDP;
 sub delay {
 	my $fin = pop();
 	my ($subs, $err);
@@ -80,7 +79,7 @@ sub _delay_step {
 			if ($@) {
 				AE::log error => $@;
 				$cv->cb(sub {
-					_delay_step([$err], undef, [$cv->recv()], $cv);
+					_delay_step([$err], undef, [$@], $cv);
 				});
 				$cv->send(@$args);
 				$cv->end();
@@ -144,7 +143,7 @@ AnyEvent::Delay::Simple - Manage callbacks and control the flow of events by Any
             say('3rd step');
         },
         sub {                          # calls on error, at this time
-            say('Fail: ' . $@);
+            say('Fail: ' . $_[1]);
             $cv->send();
         },
         sub {                          # calls on success, not at this time
@@ -163,9 +162,9 @@ AnyEvent. This module inspired by L<Mojo::IOLoop::Delay>.
 
 =head2 delay
 
+    delay(\&step_1, ..., \&step_n, \&error, \&finish);
     delay([\&step_1, ..., \&step_n], \&finish);
     delay([\&step_1, ..., \&step_n], \&error, \&finish);
-    delay(\&step_1, ..., \&step_n, \&error, \&finish);
 
 Runs the chain of callbacks, the first callback will run right away, and the
 next one once the previous callback finishes. This chain will continue until
@@ -175,9 +174,9 @@ call, if it's defined. Unless error handler defined, error is fatal. If last
 callback finishes and no error occurs, finish handler will call.
 
 Condvar and data from previous step passed as arguments to each callback or
-handler. If an error occurs then input data of the failed callback passed to
+finish handler. If an error occurs then condvar and error message passed to
 the error handler. The data sends to the next step by using condvar's C<send()>
-mrthod.
+method.
 
     sub {
         my $cv = shift();
