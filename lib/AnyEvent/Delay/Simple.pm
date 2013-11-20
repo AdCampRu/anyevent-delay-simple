@@ -77,12 +77,15 @@ sub _delay_step {
 				$sub->($xcv, @$args);
 			};
 			if ($@) {
-				AE::log error => $@;
+				my $msg = $@;
+
+				AE::log error => $msg;
 				$cv->cb(sub {
-					_delay_step([$err], undef, [$@], $cv);
+					_delay_step([$err], undef, [$msg], $cv);
 				});
 				$cv->send(@$args);
 				$cv->end();
+
 				undef($xcv);
 			}
 			else {
