@@ -17,7 +17,7 @@ our @EXPORT = qw(delay);
 sub import {
 	my ($class, @args) = @_;
 
-	if (grep { $_ && $_ eq 'ae' } @args) {
+	if (grep { $_ && $_ eq 'AE' } @args) {
 		no strict 'refs';
 		*AE::delay = \&delay;
 	}
@@ -202,9 +202,9 @@ Condvar can be used to control the flow of events within step.
     }
 
 You may import this function into L<AE> namespace instead of current one. Just
-use module with symbol C<ae>.
+use module with symbol C<AE>.
 
-    use AnyEvent::Delay::Simple qw(ae);
+    use AnyEvent::Delay::Simple qw(AE);
     AE::delay(...);
 
 =head1 SEE ALSO
