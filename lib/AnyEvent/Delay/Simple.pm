@@ -5,30 +5,35 @@ use warnings;
 
 use AnyEvent;
 
-use parent 'Exporter';
+use parent qw(Exporter);
 
 
 our $VERSION = '0.04';
 
 
-our @EXPORT = qw(delay);
+our @EXPORT    = qw(delay);
+our @EXPORT_OK = qw(easy_delay);
 
 
 sub import {
 	my ($class, @args) = @_;
 
-	if (grep { $_ && $_ eq 'AE' } @args) {
-		no strict 'refs';
-		*AE::delay = \&delay;
+	my $ae;
+
+	@args = grep { !($_ && $_ eq '-AE' && ($ae = 1)) } @args;
+	if ($ae) {
+		$class->export('AE', @args);
 	}
 	else {
-		$class->export_to_level(1, @args);
+		$class->export_to_level(1, undef, @args);
 	}
 }
 
 sub delay {
 	my $fin = pop();
 	my ($subs, $err);
+
+	return unless $fin;
 
 	if (ref($_[0]) eq 'ARRAY') {
 		$subs = shift();
@@ -116,6 +121,79 @@ sub _delay_step_ex {
 	return;
 }
 
+sub easy_delay {
+	my $fin = pop();
+	my ($subs, $err);
+
+	return unless $fin;
+
+	if (ref($_[0]) eq 'ARRAY') {
+		$subs = shift();
+		$err  = pop();
+	}
+	else {
+		$err  = pop();
+		$subs = \@_;
+	}
+
+	my $cv = AE::cv;
+
+	$cv->begin();
+	$cv->cb(sub {
+		$fin->($cv->recv());
+	});
+	_easy_delay_step($subs, $err, $cv);
+	$cv->end();
+
+	return;
+}
+
+sub _easy_delay_step {
+	my ($cv) = pop();
+	my ($subs, $err, $args) = @_;
+
+	my $sub = shift(@$subs);
+
+	unless (defined($args)) {
+		$args = [];
+	}
+	unless ($sub) {
+		$cv->send(@$args);
+
+		return;
+	}
+
+	$cv->begin();
+	AE::postpone {
+		my @res;
+
+		if ($err) {
+			eval {
+				@res = $sub->(@$args);
+			};
+			if ($@) {
+				my $msg = $@;
+
+				AE::log error => $msg;
+				$cv->cb(sub {
+					$err->($msg);
+				});
+				$cv->send(@$args);
+			}
+			else {
+				_easy_delay_step($subs, $err, \@res, $cv);
+			}
+		}
+		else {
+			@res = $sub->(@$args);
+			_easy_delay_step($subs, $err, \@res, $cv);
+		}
+		$cv->end();
+	};
+
+	return;
+}
+
 
 1;
 
@@ -163,18 +241,25 @@ AnyEvent. This module inspired by L<Mojo::IOLoop::Delay>.
 
 =head1 FUNCTIONS
 
+Both functions runs the chain of callbacks, the first callback will run right
+away, and the next one once the previous callback finishes. This chain will
+continue until there are no more callbacks, or an error occurs in a callback.
+If an error occurs in one of the steps, the chain will be break, and error
+handler will call, if it's defined. Unless error handler defined, error is
+fatal. If last callback finishes and no error occurs, finish handler will call.
+
+You may import these functions into L<AE> namespace instead of current one.
+Just use module with symbol C<-AE>.
+
+    use AnyEvent::Delay::Simple qw(AE);
+    AE::delay(...);
+
 =head2 delay
 
-    delay(\&step_1, ..., \&step_n, \&error, \&finish);
-    delay([\&step_1, ..., \&step_n], \&finish);
-    delay([\&step_1, ..., \&step_n], \&error, \&finish);
+    delay(\&cb_1, ..., \&cb_n, \&err, \&fin);
+    delay([\&cb_1, ..., \&cb_n], \&fin);
+    delay([\&cb_1, ..., \&cb_n], \&err, \&fin);
 
-Runs the chain of callbacks, the first callback will run right away, and the
-next one once the previous callback finishes. This chain will continue until
-there are no more callbacks, or an error occurs in a callback. If an error
-occurs in one of the steps, the chain will be break, and error handler will
-call, if it's defined. Unless error handler defined, error is fatal. If last
-callback finishes and no error occurs, finish handler will call.
 
 Condvar and data from previous step passed as arguments to each callback or
 finish handler. If an error occurs then condvar and error message passed to
@@ -201,11 +286,23 @@ Condvar can be used to control the flow of events within step.
         $cv->cb(sub { $cv->send('step finished'); });
     }
 
-You may import this function into L<AE> namespace instead of current one. Just
-use module with symbol C<AE>.
+=head2 easy_delay
 
-    use AnyEvent::Delay::Simple qw(AE);
-    AE::delay(...);
+    easy_delay(\&cb_1, ..., \&cb_n, \&err, \&fin);
+    easy_delay([\&cb_1, ..., \&cb_n], \&fin);
+    easy_delay([\&cb_1, ..., \&cb_n], \&err, \&fin);
+
+This function is similar to the previous function. But its arguments contains
+no condvar. And return values of each callbacks in chain passed as arguments to
+the next one.
+
+    sub {
+        return ('foo', 'bar');
+    },
+    sub {
+        my (@args) = @_;
+        # now @args is ('foo', 'bar')
+    },
 
 =head1 SEE ALSO
 

@@ -7,7 +7,7 @@ use Test::More;
 use Test::Deep;
 
 use AnyEvent;
-use AnyEvent::Delay::Simple qw(AE);
+use AnyEvent::Delay::Simple qw(-AE delay easy_delay);
 
 
 local $ENV{PERL_ANYEVENT_LOG} = 'log=nolog';
@@ -22,7 +22,7 @@ AE::delay
 	sub { $cv->end(); }
 ;
 $cv->begin();
-AE::delay
+AE::easy_delay
 	[map { my $v = $_; sub { push(@res, $v); } } 10 .. 19],
 	sub { $cv->end(); }
 ;
@@ -31,6 +31,9 @@ $cv->wait();
 cmp_bag \@res, [-1, 0 .. 5, 10 .. 19];
 
 eval { delay(); };
+like $@, qr/^Undefined subroutine/;
+
+eval { easy_delay(); };
 like $@, qr/^Undefined subroutine/;
 
 done_testing();
