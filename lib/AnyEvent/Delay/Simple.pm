@@ -219,10 +219,9 @@ AnyEvent::Delay::Simple - Manage callbacks and control the flow of events by Any
     delay(
         sub {
             say('1st step');
-            shift->send('1st result'); # send data to 2nd step
+            pop->send('1st result');   # send data to 2nd step
         },
         sub {
-            shift;
             say(@_);                   # receive data from 1st step
             say('2nd step');
             die();
@@ -274,18 +273,19 @@ the error handler. The data sends to the next step by using condvar's C<send()>
 method.
 
     sub {
-        my $cv = shift();
+        my $cv = pop();
         $cv->send('foo', 'bar');
     },
     sub {
-        my ($cv, @args) = @_;
+        my $cv   = pop();
+        my @args = @_;
         # now @args is ('foo', 'bar')
     },
 
 Condvar can be used to control the flow of events within step.
 
     sub {
-        my $cv = shift();
+        my $cv = pop();
         $cv->begin();
         $cv->begin();
         my $w1; $w1 = AE::timer 1.0, 0, sub { $cv->end(); undef($w1); };
