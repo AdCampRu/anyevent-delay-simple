@@ -8,7 +8,7 @@ use AnyEvent;
 use parent qw(Exporter);
 
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 
 our @EXPORT    = qw(delay);
@@ -86,7 +86,7 @@ sub _delay_step {
 		$xcv->begin();
 		if ($err) {
 			eval {
-				$sub->($xcv, @$args);
+				$sub->(@$args, $xcv);
 			};
 			if ($@) {
 				my $msg = $@;
@@ -105,7 +105,7 @@ sub _delay_step {
 			}
 		}
 		else {
-			$sub->($xcv, @$args);
+			$sub->(@$args, $xcv);
 			_delay_step_ex($subs, $err, $xcv, $cv);
 		}
 	};

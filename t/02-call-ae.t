@@ -36,4 +36,5 @@ like $@, qr/^Undefined subroutine/;
 eval { easy_delay(); };
 like $@, qr/^Undefined subroutine/;
 
-done_testing();
+
+done_testing;

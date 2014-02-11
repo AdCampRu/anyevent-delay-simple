@@ -1,5 +1,12 @@
 Revision history for perl module AnyEvent::AnyEvent::Delay::Simple
 
+0.05    2014-02-12
+        [Incompatible changes]
+        - The condition variable in list of callback arguments of delay()
+          function moved to the last position.
+        [Other]
+        - TBD...
+
 0.04    2013-11-20
         [Incompatible changes]
         - Implemented control the flow of events within step. Changed

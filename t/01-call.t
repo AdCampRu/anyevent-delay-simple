@@ -48,11 +48,11 @@ cmp_bag \@res, [-1, 0 .. 5, 10 .. 19];
 $cv = AE::cv;
 $cv->begin();
 delay([
-	sub { shift->send(1); },
-	sub { is scalar(@_), 2; is $_[1], 1; shift->send(1, 2, 3); },
-	sub { is scalar(@_), 4; cmp_deeply [@_[1 .. 3]], [1, 2, 3]; shift->send(2); }],
+	sub { pop()->send(1); },
+	sub { my $c = pop(); is scalar(@_), 1; is $_[0], 1; $c->send(1, 2, 3); },
+	sub { my $c = pop(); is scalar(@_), 3; cmp_deeply \@_, [1, 2, 3]; $c->send(2); }],
 	sub { $cv->end(); },
-	sub { is scalar(@_), 2; is $_[1], 2; $cv->end(); }
+	sub { pop(); is scalar(@_), 1; is $_[0], 2; $cv->end(); }
 );
 $cv->wait();
 
@@ -69,10 +69,10 @@ $cv->wait();
 
 $cv = AE::cv;
 delay([
-	sub { shift->send(1); },
-	sub { is scalar(@_), 2; is $_[1], 1; shift->send(1, 2, 3); },
+	sub { pop()->send(1); },
+	sub { my $c = pop(); is scalar(@_), 1; is $_[0], 1; $c->send(1, 2, 3); },
 	sub { die('foo'); }],
-	sub { is scalar(@_), 2; like $_[1], qr/^foo/; $cv->send(1); },
+	sub { is scalar(@_), 2; like $_[0], qr/^foo/; $cv->send(1); },
 	sub { $cv->send(2); }
 );
 is $cv->recv(), 1;
@@ -93,4 +93,5 @@ like $@, qr/^Undefined subroutine/;
 eval { AE::easy_delay(); };
 like $@, qr/^Undefined subroutine/;
 
-done_testing();
+
+done_testing;
