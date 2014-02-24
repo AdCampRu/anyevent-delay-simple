@@ -20,14 +20,15 @@ WriteMakefile(
 	PREREQ_PM        => {
 		'parent'            => 0,
 		'AnyEvent'          => 0,
+		'Scalar::Util'      => 0,
 	},
 	META_MERGE       => {
-		resources  => {
+		resources => {
 			license     => 'http://dev.perl.org/licenses/',
 			repository  => 'http://github.com/AdCampRu/anyevent-delay-simple',
 			bugtracker  => 'http://github.com/AdCampRu/anyevent-delay-simple/issues',
 		},
-		no_index   => {directory => ['t']},
+		no_index  => {directory => ['t']},
 	},
 	dist             => {COMPRESS => 'gzip -9f', SUFFIX => 'gz'},
 	clean            => {FILES => 'AnyEvent-Delay-Simple-*'},
