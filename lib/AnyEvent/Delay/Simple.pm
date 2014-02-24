@@ -342,11 +342,11 @@ L<AnyEvent>, L<AnyEvent::Delay>, L<Mojo::IOLoop::Delay>.
 
 =over 4
 
-=item Repository
+=item * Repository
 
 L<http://github.com/AdCampRu/anyevent-delay-simple>
 
-=item Bug tracker
+=item * Bug tracker
 
 L<http://github.com/AdCampRu/anyevent-delay-simple/issues>
 
