@@ -96,15 +96,7 @@ sub _delay_step {
 				$sub->($obj ? $obj : (), @$args, $xcv);
 			};
 			if ($@) {
-				my $msg = $@;
-
-				AE::log error => $msg;
-				$cv->cb(sub {
-					_delay_step($obj, [$err], undef, [$msg], $cv);
-				});
-				$cv->send(@$args);
-				$cv->end();
-
+				_delay_err($obj, $err, $@, $cv);
 				undef($xcv);
 			}
 			else {
@@ -126,11 +118,38 @@ sub _delay_step_ex {
 	my $cb = $xcv->cb();
 
 	$xcv->cb(sub {
-		$cb->() if $cb;
+		if ($cb) {
+			if ($err) {
+				eval {
+					$cb->();
+				};
+				if ($@) {
+					_delay_err($obj, $err, $@, $cv);
+
+					return;
+				}
+			}
+			else {
+				$cb->();
+			}
+		}
 		_delay_step($obj, $subs, $err, [$xcv->recv()], $cv);
 		$cv->end();
 	});
 	$xcv->end();
+
+	return;
+}
+
+sub _delay_err {
+	my ($obj, $err, $msg, $cv) = @_;
+
+	AE::log error => $msg;
+
+	$cv->cb(sub {
+		_delay_step($obj, [$err], undef, [$msg], $cv);
+	});
+	$cv->end();
 
 	return;
 }
@@ -195,6 +214,7 @@ sub _easy_delay_step {
 				my $msg = $@;
 
 				AE::log error => $msg;
+
 				$cv->cb(sub {
 					$err->($obj ? $obj : (), $msg);
 				});
