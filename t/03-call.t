@@ -87,11 +87,5 @@ easy_delay([
 );
 is $cv->recv(), 1;
 
-eval { AE::delay(); };
-like $@, qr/^Undefined subroutine/;
-
-eval { AE::easy_delay(); };
-like $@, qr/^Undefined subroutine/;
-
 
 done_testing;

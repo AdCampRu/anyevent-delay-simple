@@ -5,9 +5,13 @@ MANIFEST
 MANIFEST.SKIP
 README
 t/00-use.t
-t/01-call.t
-t/02-call-ae.t
-t/03-call-method.t
+t/01-import.t
+t/02-import-ae.t
+t/03-call.t
+t/04-call-method.t
+t/05-fail-step.t
+t/06-fail-step-easy.t
+t/07-fail-cb.t
 t/90-pod.t
 t/91-pod-coverage.t
 t/92-manifest.t
